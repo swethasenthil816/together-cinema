@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Build output
+client/dist/
+
+# Environment variables - NEVER commit these
+.env
+server/.env
+*.env.local
+
+# Database (local dev only - Render uses MongoDB Atlas)
+server/data/db.json
+
+# Uploaded movies (too large for git - use Render disk or cloud storage)
+server/uploads/movies/*.mp4
+server/uploads/movies/*.webm
+server/uploads/movies/*.mkv
+
+# Keep the uploads folder structure
+!server/uploads/.gitkeep
+!server/uploads/movies/.gitkeep
+!server/uploads/thumbnails/.gitkeep
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/

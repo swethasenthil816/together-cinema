@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: together-cinema
+    runtime: node
+    region: singapore  # Closest to Malaysia/Asia
+    plan: free
+    rootDir: .
+    buildCommand: npm run build:all
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGODB_URI
+        sync: false   # You will paste this from MongoDB Atlas
+      - key: CLIENT_URL
+        sync: false   # You will paste your Render app URL after first deploy
+    disk:
+      name: movie-uploads
+      mountPath: /opt/render/project/src/server/uploads
+      sizeGB: 1       # 1GB free persistent disk for uploaded movies

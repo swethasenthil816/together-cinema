@@ -1,0 +1,13 @@
+{
+  "name": "together-cinema",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Together Cinema ❤️ - Private synchronized movie watching for two",
+  "scripts": {
+    "server": "cd server && node src/server.js",
+    "client": "cd client && npx vite --host 0.0.0.0 --port 5173",
+    "install:all": "cd server && npm install && cd ../client && npm install",
+    "build:all": "cd server && npm install && cd ../client && npm install && npm run build",
+    "start": "cd server && node src/server.js"
+  }
+}
