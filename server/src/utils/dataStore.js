@@ -5,8 +5,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// In production on Render, store db.json on the persistent disk
-const DB_FILE = process.env.UPLOAD_DIR
+// In production on Render (with persistent disk), store db.json on the disk mount
+const DB_FILE = (process.env.NODE_ENV === 'production' && process.env.UPLOAD_DIR)
   ? path.join(path.resolve(process.env.UPLOAD_DIR), 'db.json')
   : path.resolve(__dirname, '../../data/db.json');
 
@@ -15,8 +15,8 @@ const defaultData = {
   users: [
     {
       id: 'demo-user-1',
-      name: 'Alex (Partner 1)',
-      email: 'alex@cinema.com',
+      name: 'Partner 1',
+      email: 'partner1@cinema.com',
       passwordHash: '$2a$10$pLwF8.48jW6UoVreJkW7c.vW6gC0N22H912eS15Qn9E6Yq0KjYgqC', // password: "password123"
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
       partnerNickname: 'My Dearest ❤️',
@@ -24,8 +24,8 @@ const defaultData = {
     },
     {
       id: 'demo-user-2',
-      name: 'Sam (Partner 2)',
-      email: 'sam@cinema.com',
+      name: 'Partner 2',
+      email: 'partner2@cinema.com',
       passwordHash: '$2a$10$pLwF8.48jW6UoVreJkW7c.vW6gC0N22H912eS15Qn9E6Yq0KjYgqC', // password: "password123"
       avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
       partnerNickname: 'Sweetheart 💖',
@@ -182,15 +182,19 @@ export const updateUser = (id, updates) => {
 };
 
 // Room methods
-export const createRoom = ({ name, hostId, activeMovieId }) => {
+export const createRoom = ({ name, hostId, hostName, hostAvatar, activeMovieId }) => {
   const store = readStore();
   const code = Math.random().toString(36).substring(2, 8).toUpperCase();
   const newRoom = {
     id: uuidv4(),
     code,
-    name: name || 'Our Movie Date Room',
+    name: name || `${hostName || 'Partner 1'}'s Movie Date Room ❤️`,
     hostId,
+    hostName: hostName || null,
+    hostAvatar: hostAvatar || null,
     participantId: null,
+    participantName: null,
+    participantAvatar: null,
     activeMovieId: activeMovieId || (store.movies[0] ? store.movies[0].id : null),
     playbackState: {
       isPlaying: false,

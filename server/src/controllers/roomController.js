@@ -6,6 +6,8 @@ export const handleCreateRoom = (req, res) => {
     const room = createRoom({
       name: name || `${req.user.name}'s Cinema Suite ❤️`,
       hostId: req.user.id,
+      hostName: req.user.name,
+      hostAvatar: req.user.avatar,
       activeMovieId
     });
 
@@ -13,7 +15,13 @@ export const handleCreateRoom = (req, res) => {
       message: 'Private room created successfully',
       room: {
         ...room,
-        host: req.user
+        host: {
+          id: req.user.id,
+          name: req.user.name,
+          avatar: req.user.avatar,
+          partnerRole: 'Partner 1'
+        },
+        participant: null
       }
     });
   } catch (err) {
@@ -34,21 +42,23 @@ export const handleJoinRoom = (req, res) => {
       return res.status(404).json({ error: 'Room not found with this code. Please check and try again.' });
     }
 
-    // Check if user is host
+    // Check if user is host (Partner 1)
     if (room.hostId === req.user.id) {
       return res.json({
-        message: 'Rejoined as host',
+        message: 'Rejoined as Partner 1 (Host)',
         room,
-        role: 'host'
+        role: 'host',
+        partnerRole: 'Partner 1'
       });
     }
 
-    // Check if user is already the participant
+    // Check if user is already the participant (Partner 2)
     if (room.participantId === req.user.id) {
       return res.json({
-        message: 'Rejoined as partner',
+        message: 'Rejoined as Partner 2',
         room,
-        role: 'partner'
+        role: 'partner',
+        partnerRole: 'Partner 2'
       });
     }
 
@@ -60,12 +70,18 @@ export const handleJoinRoom = (req, res) => {
       });
     }
 
-    // Assign as participant
-    const updated = updateRoom(room.id, { participantId: req.user.id });
+    // Assign as participant (Partner 2) using their actual username
+    const updated = updateRoom(room.id, {
+      participantId: req.user.id,
+      participantName: req.user.name,
+      participantAvatar: req.user.avatar
+    });
+
     res.json({
-      message: 'Joined private movie room successfully',
+      message: 'Joined private movie room successfully as Partner 2',
       room: updated,
-      role: 'partner'
+      role: 'partner',
+      partnerRole: 'Partner 2'
     });
   } catch (err) {
     console.error('Join room error:', err);
@@ -87,22 +103,41 @@ export const handleGetRoom = (req, res) => {
     // Check authorization: must be host or participant, or if room has no participant yet, allow joining
     const isHost = room.hostId === req.user.id;
     const isParticipant = room.participantId === req.user.id;
-    const canJoinAsParticipant = !room.participantId;
+    const canJoinAsParticipant = !room.participantId && !isHost;
 
     if (!isHost && !isParticipant && !canJoinAsParticipant) {
       return res.status(403).json({ error: 'Unauthorized: Private room is reserved for 2 users' });
     }
 
-    // Populate user info
+    // If joining as the 2nd person (Partner 2), register them in the room
+    if (canJoinAsParticipant) {
+      room = updateRoom(room.id, {
+        participantId: req.user.id,
+        participantName: req.user.name,
+        participantAvatar: req.user.avatar
+      }) || room;
+    }
+
+    // Populate user info with explicit Partner 1 and Partner 2 designations
     const hostUser = store.users.find(u => u.id === room.hostId);
     const participantUser = room.participantId ? store.users.find(u => u.id === room.participantId) : null;
     const activeMovie = store.movies.find(m => m.id === room.activeMovieId) || store.movies[0];
 
+    const hostData = hostUser
+      ? { id: hostUser.id, name: hostUser.name, avatar: hostUser.avatar, partnerRole: 'Partner 1' }
+      : (room.hostName ? { id: room.hostId, name: room.hostName, avatar: room.hostAvatar, partnerRole: 'Partner 1' } : null);
+
+    const participantData = participantUser
+      ? { id: participantUser.id, name: participantUser.name, avatar: participantUser.avatar, partnerRole: 'Partner 2' }
+      : (room.participantName ? { id: room.participantId, name: room.participantName, avatar: room.participantAvatar, partnerRole: 'Partner 2' } : null);
+
     res.json({
       room: {
         ...room,
-        host: hostUser ? { id: hostUser.id, name: hostUser.name, avatar: hostUser.avatar } : null,
-        participant: participantUser ? { id: participantUser.id, name: participantUser.name, avatar: participantUser.avatar } : null,
+        host: hostData,
+        participant: participantData,
+        partner1: hostData,
+        partner2: participantData,
         activeMovie
       }
     });

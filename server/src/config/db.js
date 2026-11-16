@@ -1,30 +1,62 @@
 import mongoose from 'mongoose';
-import fs from 'fs';
+import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Always read server/.env, even if the process was started from the repo root.
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
+export const DB_NAME = 'togethercinema';
+
 let isMongoConnected = false;
+let lastError = null;
+
+function redact(value) {
+  return String(value)
+    .replace(/mongodb(?:\+srv)?:\/\/\S+/gi, 'mongodb://***')
+    .replace(/\/\/([^:@/\s]+):([^@/\s]+)@/g, '//$1:***@');
+}
 
 export const connectDB = async () => {
-  const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/together_cinema';
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    isMongoConnected = false;
+    lastError = 'MONGODB_URI is missing. Add it to server/.env (server only, never the frontend).';
+    console.error(lastError);
+    return getDBStatus();
+  }
+
   try {
-    // Attempt fast connection with 2.5s timeout
     await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 2500,
+      dbName: DB_NAME,
+      serverSelectionTimeoutMS: 10000,
     });
+    await mongoose.connection.db.command({ ping: 1 });
+    // Atlas creates the database on the first write.
+    await mongoose.connection.db.collection('_meta').updateOne(
+      { _id: 'bootstrap' },
+      { $set: { name: DB_NAME, app: 'together-cinema', checkedAt: new Date() } },
+      { upsert: true }
+    );
     isMongoConnected = true;
-    console.log('✅ Connected to MongoDB at:', uri);
+    lastError = null;
+    console.log(`Connected to MongoDB database "${DB_NAME}" on ${mongoose.connection.host}`);
   } catch (err) {
     isMongoConnected = false;
-    console.log('ℹ️ MongoDB not detected locally, using resilient embedded JSON database.');
-    console.log('   All data (users, rooms, movies, messages) will be safely persisted in server/data/db.json');
+    lastError = redact(err.message);
+    console.error('MongoDB connection failed:', lastError);
+    console.log('Using the embedded JSON database in server/data/db.json until MongoDB is reachable.');
   }
+
+  return getDBStatus();
 };
 
 export const getDBStatus = () => ({
   isMongoConnected,
   type: isMongoConnected ? 'mongodb' : 'json-store',
+  name: isMongoConnected ? DB_NAME : null,
+  error: lastError,
 });

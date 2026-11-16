@@ -37,6 +37,8 @@ export const MovieRoomPage = () => {
   const [activeMovie, setActiveMovie] = useState(null);
   const [members, setMembers] = useState([]);
   const [partnerUser, setPartnerUser] = useState(null);
+  const [partner1User, setPartner1User] = useState(null);
+  const [partner2User, setPartner2User] = useState(null);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [roomError, setRoomError] = useState(null);
@@ -63,8 +65,10 @@ export const MovieRoomPage = () => {
         const res = await roomApi.get(roomId);
         setRoom(res.room);
         setActiveMovie(res.room.activeMovie);
+        if (res.room.host) setPartner1User(res.room.host);
+        if (res.room.participant) setPartner2User(res.room.participant);
 
-        // Determine partner user
+        // Determine partner user relative to current user
         if (res.room.host && res.room.host.id !== user.id) {
           setPartnerUser(res.room.host);
         } else if (res.room.participant && res.room.participant.id !== user.id) {
@@ -98,9 +102,15 @@ export const MovieRoomPage = () => {
     });
 
     const handleMembersUpdated = ({ members: memberList }) => {
-      setMembers(memberList || []);
-      const partner = memberList.find((m) => m.id !== user.id);
+      const list = memberList || [];
+      setMembers(list);
+      const partner = list.find((m) => m.id !== user.id);
       setPartnerUser(partner || null);
+
+      const p1 = list.find((m) => m.isHost || m.partnerRole === 'Partner 1');
+      const p2 = list.find((m) => (!m.isHost && m.partnerRole === 'Partner 2') || (p1 && m.id !== p1.id));
+      if (p1) setPartner1User(p1);
+      if (p2) setPartner2User(p2);
     };
 
     const handleRomanticBothJoined = (data) => {
@@ -256,9 +266,17 @@ export const MovieRoomPage = () => {
                 </span>
               </div>
               <div className="flex items-center gap-2 text-[11px] text-cinema-muted">
-                <span className="flex items-center gap-1 text-emerald-400">
+                <span className="flex items-center gap-1.5 text-emerald-400">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  {members.length === 2 ? 'Both Online ❤️' : 'Waiting for Partner...'}
+                  {members.length === 2 ? (
+                    <span>
+                      Both Online ❤️ <span className="text-white font-medium">({partner1User?.name || (isCurrentUserHost ? user?.name : partnerUser?.name)} & {partner2User?.name || (!isCurrentUserHost ? user?.name : partnerUser?.name)})</span>
+                    </span>
+                  ) : (
+                    <span>
+                      Waiting for Partner 2 to enter code <span className="font-mono text-romantic-pink font-bold">#{room?.code}</span>...
+                    </span>
+                  )}
                 </span>
               </div>
             </div>
@@ -272,7 +290,7 @@ export const MovieRoomPage = () => {
               title="Copy invite link to send to partner"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span className="hidden sm:inline">{copied ? 'Link Copied!' : 'Invite Partner'}</span>
+              <span className="hidden sm:inline">{copied ? 'Link Copied!' : 'Invite Partner 2'}</span>
             </button>
 
             {/* Mobile Chat Toggle Button */}
@@ -341,7 +359,7 @@ export const MovieRoomPage = () => {
                   <Users className="w-3.5 h-3.5 text-romantic-pink" /> Live Webcam Screens
                 </h3>
                 <span className="text-[11px] text-cinema-muted">
-                  {partnerUser ? `${partnerUser.name} & You` : 'Waiting for partner to connect...'}
+                  <span className="text-netflix-red font-semibold">Partner 1:</span> {partner1User?.name || (isCurrentUserHost ? user?.name : partnerUser?.name)} • <span className="text-romantic-pink font-semibold">Partner 2:</span> {partner2User?.name || (!isCurrentUserHost ? user?.name : partnerUser?.name) || 'Waiting to join...'}
                 </span>
               </div>
 
@@ -349,6 +367,10 @@ export const MovieRoomPage = () => {
                 webrtc={webrtc}
                 currentUser={user}
                 partnerUser={partnerUser}
+                partner1User={partner1User}
+                partner2User={partner2User}
+                isHost={isCurrentUserHost}
+                roomCode={room?.code}
                 roomId={roomId}
               />
             </div>
@@ -361,6 +383,9 @@ export const MovieRoomPage = () => {
                 roomId={roomId}
                 currentUser={user}
                 partnerUser={partnerUser}
+                partner1User={partner1User}
+                partner2User={partner2User}
+                isHost={isCurrentUserHost}
                 onSendReaction={handleSendReaction}
               />
             </div>

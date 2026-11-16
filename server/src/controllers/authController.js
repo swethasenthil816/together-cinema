@@ -108,8 +108,11 @@ export const updateProfile = async (req, res) => {
 export const demoLogin = (req, res) => {
   const { role } = req.query; // 'partner1' or 'partner2'
   const store = readStore();
-  const demoEmail = role === 'partner2' ? 'sam@cinema.com' : 'alex@cinema.com';
-  const user = store.users.find(u => u.email === demoEmail);
+  const demoEmail = role === 'partner2' ? 'partner2@cinema.com' : 'partner1@cinema.com';
+  let user = store.users.find(u => u.email === demoEmail);
+  if (!user && store.users.length > 0) {
+    user = store.users[0];
+  }
 
   if (!user) {
     return res.status(404).json({ error: 'Demo user not found' });

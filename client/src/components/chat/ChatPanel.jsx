@@ -13,7 +13,15 @@ const QUICK_LOVE_MESSAGES = [
 
 const EMOJI_PALETTE = ['❤️', '💖', '🍿', '🥰', '😘', '✨', '😭', '🫣', '🔥', '🥂'];
 
-export const ChatPanel = ({ roomId, currentUser, partnerUser, onSendReaction }) => {
+export const ChatPanel = ({
+  roomId,
+  currentUser,
+  partnerUser,
+  partner1User,
+  partner2User,
+  isHost,
+  onSendReaction
+}) => {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -21,6 +29,9 @@ export const ChatPanel = ({ roomId, currentUser, partnerUser, onSendReaction }) 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+
+  const p1Name = partner1User?.name || (isHost ? currentUser?.name : partnerUser?.name) || 'Partner 1';
+  const p2Name = partner2User?.name || (!isHost ? currentUser?.name : partnerUser?.name);
 
   // Auto-scroll to bottom of messages
   const scrollToBottom = () => {
@@ -88,12 +99,14 @@ export const ChatPanel = ({ roomId, currentUser, partnerUser, onSendReaction }) 
     if (!msgText.trim()) return;
 
     const socket = getSocket();
+    const myRole = isHost ? 'Partner 1' : 'Partner 2';
     socket.emit('chat-send-message', {
       roomId,
       message: {
         senderId: currentUser?.id,
         senderName: currentUser?.name,
         senderAvatar: currentUser?.avatar,
+        senderRole: myRole,
         text: msgText.trim(),
         type: 'text',
       },
@@ -115,9 +128,14 @@ export const ChatPanel = ({ roomId, currentUser, partnerUser, onSendReaction }) 
     <div className="flex flex-col h-full bg-cinema-darker rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
       {/* Chat Header */}
       <div className="px-4 py-3 bg-cinema-card border-b border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-romantic-pink" />
-          <h3 className="text-sm font-bold text-white tracking-wide">Live Date Chat</h3>
+        <div>
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-romantic-pink" />
+            <h3 className="text-sm font-bold text-white tracking-wide">Live Date Chat</h3>
+          </div>
+          <p className="text-[10px] text-cinema-muted mt-0.5">
+            <span className="text-netflix-red font-medium">{p1Name}</span> & <span className="text-romantic-pink font-medium">{p2Name || 'Partner 2'}</span>
+          </p>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-cinema-muted">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -131,7 +149,7 @@ export const ChatPanel = ({ roomId, currentUser, partnerUser, onSendReaction }) 
           <div className="flex flex-col items-center justify-center h-full text-center p-4">
             <Heart className="w-8 h-8 text-romantic-pink/40 animate-pulse mb-2" />
             <p className="text-xs text-cinema-muted">
-              Start chatting with {partnerUser?.name || 'your partner'}! Send a sweet message below.
+              Start chatting with {partnerUser?.name || (isHost ? 'Partner 2' : 'Partner 1')}! Send a sweet message below.
             </p>
           </div>
         ) : (
@@ -158,11 +176,9 @@ export const ChatPanel = ({ roomId, currentUser, partnerUser, onSendReaction }) 
                       : 'bg-cinema-card text-cinema-text border border-white/10 rounded-tl-none'
                   }`}
                 >
-                  {!isMe && (
-                    <p className="text-[10px] font-semibold text-romantic-pink mb-0.5">
-                      {msg.senderName}
-                    </p>
-                  )}
+                  <p className={`text-[10px] font-semibold mb-0.5 ${isMe ? 'text-white/80' : 'text-romantic-pink'}`}>
+                    {msg.senderName} {msg.senderRole && <span className="text-[9px] opacity-75 font-normal">({msg.senderRole})</span>}
+                  </p>
                   <p className="break-words select-text">{msg.text}</p>
                   <p className={`text-[9px] mt-1 text-right ${isMe ? 'text-white/70' : 'text-cinema-muted'}`}>
                     {timeStr}

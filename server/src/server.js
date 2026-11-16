@@ -15,17 +15,16 @@ import authRoutes from './routes/authRoutes.js';
 import roomRoutes from './routes/roomRoutes.js';
 import movieRoutes from './routes/movieRoutes.js';
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
 const server = http.createServer(app);
 
 // Initialize data persistence store
 initDataStore();
-connectDB();
 
 // CORS configuration
 const allowedOrigins = [
@@ -99,6 +98,9 @@ const io = new SocketIOServer(server, {
 setupSocketHandlers(io);
 
 const PORT = process.env.PORT || 5000;
+
+await connectDB();
+
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🎬 Together Cinema Server running at http://localhost:${PORT}`);
   console.log(`❤️  Ready for synchronized movie dates!`);

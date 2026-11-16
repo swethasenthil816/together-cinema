@@ -113,31 +113,6 @@ export const LoginPage = () => {
           </button>
         </form>
 
-        {/* 1-Click Instant Demo Login for Testing */}
-        <div className="mt-6 pt-6 border-t border-white/10">
-          <p className="text-[11px] text-center text-cinema-muted uppercase tracking-wider font-semibold mb-3 flex items-center justify-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-romantic-pink" /> 1-Click Test Partners
-          </p>
-          <div className="grid grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              onClick={() => handleDemo('partner1')}
-              disabled={loading}
-              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white hover:text-romantic-pink transition-all text-center cursor-pointer"
-            >
-              Partner 1 (Alex)
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDemo('partner2')}
-              disabled={loading}
-              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white hover:text-romantic-pink transition-all text-center cursor-pointer"
-            >
-              Partner 2 (Sam)
-            </button>
-          </div>
-        </div>
-
         <p className="mt-6 text-center text-xs text-cinema-muted">
           Don't have an account yet?{' '}
           <Link to="/register" className="text-romantic-pink hover:underline font-semibold">

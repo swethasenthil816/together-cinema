@@ -15,8 +15,18 @@ export const setupSocketHandlers = (io) => {
     socket.on('join-room', ({ roomId, user }) => {
       if (!roomId || !user) return;
 
+      const room = findRoomById(roomId);
+      const isHost = room ? (room.hostId === user.id) : false;
+      const partnerRole = isHost ? 'Partner 1' : 'Partner 2';
+
+      const enrichedUser = {
+        ...user,
+        partnerRole,
+        isHost
+      };
+
       socket.join(roomId);
-      socketUserMap.set(socket.id, { roomId, userId: user.id, userName: user.name });
+      socketUserMap.set(socket.id, { roomId, userId: user.id, userName: user.name, partnerRole });
 
       if (!roomParticipants.has(roomId)) {
         roomParticipants.set(roomId, new Map());
@@ -32,12 +42,12 @@ export const setupSocketHandlers = (io) => {
 
       participants.set(user.id, {
         socketId: socket.id,
-        user
+        user: enrichedUser
       });
 
       const memberList = Array.from(participants.values()).map(p => p.user);
 
-      // Notify the room of current members
+      // Notify the room of current members with explicit Partner 1 and Partner 2 designations
       io.to(roomId).emit('room-members-updated', {
         members: memberList,
         count: memberList.length
@@ -47,18 +57,22 @@ export const setupSocketHandlers = (io) => {
       const messages = getRoomMessages(roomId);
       socket.emit('chat-history', { messages });
 
-      // If both partners are now present, emit cute celebratory event!
+      // If both partners are now present, emit celebratory event with real usernames!
       if (memberList.length === 2) {
+        const p1 = memberList.find(m => m.isHost || m.partnerRole === 'Partner 1') || memberList[0];
+        const p2 = memberList.find(m => (!m.isHost && m.partnerRole === 'Partner 2') || m.id !== p1.id) || memberList[1];
         io.to(roomId).emit('romantic-both-joined', {
-          message: 'Both of you are here! Your romantic movie date has officially started! ❤️🎬',
-          users: memberList
+          message: `${p1.name} (Partner 1) & ${p2.name} (Partner 2) are both here! Your romantic movie date has officially started! ❤️🎬`,
+          partner1: p1,
+          partner2: p2,
+          users: [p1, p2]
         });
       }
 
       // Notify other peer in room for WebRTC peer connection
       socket.to(roomId).emit('webrtc-peer-joined', {
         peerId: socket.id,
-        user
+        user: enrichedUser
       });
     });
 
@@ -183,11 +197,16 @@ export const setupSocketHandlers = (io) => {
     // ----------------------------------------------------
 
     socket.on('chat-send-message', ({ roomId, message }) => {
+      const room = findRoomById(roomId);
+      const isHost = room ? (room.hostId === message.senderId) : false;
+      const defaultRole = isHost ? 'Partner 1' : 'Partner 2';
+
       const savedMsg = addChatMessage({
         roomId,
         senderId: message.senderId,
         senderName: message.senderName,
         senderAvatar: message.senderAvatar,
+        senderRole: message.senderRole || defaultRole,
         text: message.text,
         type: message.type || 'text'
       });

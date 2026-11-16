@@ -32,6 +32,8 @@ export const RomanticWelcomeModal = ({ bothJoinedData, onClose }) => {
   if (!visible || !bothJoinedData) return null;
 
   const users = bothJoinedData.users || [];
+  const p1 = bothJoinedData.partner1 || users[0] || { name: 'Partner 1' };
+  const p2 = bothJoinedData.partner2 || users[1] || { name: 'Partner 2' };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
@@ -42,26 +44,34 @@ export const RomanticWelcomeModal = ({ bothJoinedData, onClose }) => {
         <div className="relative z-10">
           {/* Couple Avatars Connected with a Glowing Heart */}
           <div className="flex items-center justify-center gap-4 mb-6">
-            <div className="relative">
-              <img
-                src={users[0]?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120'}
-                alt={users[0]?.name}
-                className="w-16 h-16 rounded-full border-2 border-netflix-red object-cover shadow-lg"
-              />
-              <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-2 border-cinema-darkest rounded-full" />
+            <div className="flex flex-col items-center">
+              <div className="relative">
+                <img
+                  src={p1.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120'}
+                  alt={p1.name}
+                  className="w-16 h-16 rounded-full border-2 border-netflix-red object-cover shadow-lg"
+                />
+                <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-2 border-cinema-darkest rounded-full" />
+              </div>
+              <span className="text-[10px] font-bold text-netflix-red uppercase mt-1">Partner 1</span>
+              <span className="text-xs font-semibold text-white truncate max-w-[90px]">{p1.name}</span>
             </div>
 
             <div className="w-10 h-10 rounded-full bg-gradient-to-r from-netflix-red to-romantic-pink flex items-center justify-center text-white shadow-md animate-heart-beat">
               <Heart className="w-5 h-5 fill-current" />
             </div>
 
-            <div className="relative">
-              <img
-                src={users[1]?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120'}
-                alt={users[1]?.name}
-                className="w-16 h-16 rounded-full border-2 border-romantic-pink object-cover shadow-lg"
-              />
-              <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-2 border-cinema-darkest rounded-full" />
+            <div className="flex flex-col items-center">
+              <div className="relative">
+                <img
+                  src={p2.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120'}
+                  alt={p2.name}
+                  className="w-16 h-16 rounded-full border-2 border-romantic-pink object-cover shadow-lg"
+                />
+                <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-2 border-cinema-darkest rounded-full" />
+              </div>
+              <span className="text-[10px] font-bold text-romantic-pink uppercase mt-1">Partner 2</span>
+              <span className="text-xs font-semibold text-white truncate max-w-[90px]">{p2.name}</span>
             </div>
           </div>
 
@@ -74,7 +84,7 @@ export const RomanticWelcomeModal = ({ bothJoinedData, onClose }) => {
           </h2>
 
           <p className="text-sm text-cinema-muted mb-6 leading-relaxed">
-            You and <span className="text-white font-semibold">{users[1]?.name || 'your partner'}</span> are synchronized in real-time. Grab some snacks, turn on your webcams, and enjoy the show!
+            <span className="text-white font-semibold">{p1.name}</span> (Partner 1) and <span className="text-white font-semibold">{p2.name}</span> (Partner 2) are synchronized in real-time. Grab some snacks, turn on your webcams, and enjoy the show!
           </p>
 
           <div className="flex items-center justify-center gap-3">
