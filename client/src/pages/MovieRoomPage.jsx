@@ -43,6 +43,11 @@ export const MovieRoomPage = () => {
   const [loading, setLoading] = useState(true);
   const [roomError, setRoomError] = useState(null);
 
+  // Compute host status and safe display names
+  const isCurrentUserHost = room ? (room.hostId === user?.id) : true;
+  const p1DisplayName = partner1User?.name || (isCurrentUserHost ? user?.name : partnerUser?.name) || 'Partner 1';
+  const p2DisplayName = partner2User?.name || (!isCurrentUserHost ? user?.name : partnerUser?.name) || '';
+
   // Romantic & UI states
   const [floatingReactionCount, setFloatingReactionCount] = useState(0);
   const [lastReactionType, setLastReactionType] = useState('heart');
@@ -270,7 +275,7 @@ export const MovieRoomPage = () => {
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   {members.length === 2 ? (
                     <span>
-                      Both Online ❤️ <span className="text-white font-medium">({partner1User?.name || (isCurrentUserHost ? user?.name : partnerUser?.name)} & {partner2User?.name || (!isCurrentUserHost ? user?.name : partnerUser?.name)})</span>
+                      Both Online ❤️ <span className="text-white font-medium">({p1DisplayName} & {p2DisplayName})</span>
                     </span>
                   ) : (
                     <span>
@@ -359,7 +364,7 @@ export const MovieRoomPage = () => {
                   <Users className="w-3.5 h-3.5 text-romantic-pink" /> Live Webcam Screens
                 </h3>
                 <span className="text-[11px] text-cinema-muted">
-                  <span className="text-netflix-red font-semibold">Partner 1:</span> {partner1User?.name || (isCurrentUserHost ? user?.name : partnerUser?.name)} • <span className="text-romantic-pink font-semibold">Partner 2:</span> {partner2User?.name || (!isCurrentUserHost ? user?.name : partnerUser?.name) || 'Waiting to join...'}
+                  <span className="text-netflix-red font-semibold">Partner 1:</span> {p1DisplayName} • <span className="text-romantic-pink font-semibold">Partner 2:</span> {p2DisplayName || 'Waiting to join...'}
                 </span>
               </div>
 
@@ -410,6 +415,9 @@ export const MovieRoomPage = () => {
                   roomId={roomId}
                   currentUser={user}
                   partnerUser={partnerUser}
+                  partner1User={partner1User}
+                  partner2User={partner2User}
+                  isHost={isCurrentUserHost}
                   onSendReaction={handleSendReaction}
                 />
               </div>
