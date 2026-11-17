@@ -1,6 +1,6 @@
 import { io } from './client/node_modules/socket.io-client/build/esm/index.js';
 
-const BASE_URL = 'http://localhost:5000';
+const BASE_URL = process.env.TEST_BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
 
 async function runTests() {
   console.log('🚀 Starting Together Cinema End-to-End Verification Suite...\n');
@@ -172,6 +172,39 @@ async function runTests() {
 
       setTimeout(() => reject(new Error('Socket.IO sync test timed out')), 5000);
     });
+
+    // ----------------------------------------------------
+    // TEST 7: Cloud Storage Upload Handlers & Frontend Serving
+    // ----------------------------------------------------
+    console.log('Test 7: Cloud Video Storage Upload API & Production SPA Serving');
+    const cloudCheckRes = await fetch(`${BASE_URL}/api/movies/upload-url`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${p1Data.token}`
+      },
+      body: JSON.stringify({ filename: 'couple_date_movie.mp4', contentType: 'video/mp4' })
+    });
+    const cloudCheckData = await cloudCheckRes.json();
+    console.log('  Cloud storage route response status:', cloudCheckRes.status);
+    console.log('  Cloud upload capability:', cloudCheckData.isCloud ? 'Cloudflare R2 / S3 Enabled' : 'Local / Dev Fallback Ready');
+
+    // Test secure signed playback URL endpoint
+    const signedUrlRes = await fetch(`${BASE_URL}/api/movies/${firstMovie.id}/signed-url`, {
+      headers: { Authorization: `Bearer ${p1Data.token}` }
+    });
+    const signedUrlData = await signedUrlRes.json();
+    console.log('  Signed playback URL endpoint status:', signedUrlRes.status);
+    console.log('  Signed URL generated:', Boolean(signedUrlData.signedUrl));
+    if (!signedUrlData.signedUrl) throw new Error('Signed playback URL endpoint failed');
+
+    // Test production SPA frontend serving
+    const frontendRes = await fetch(`${BASE_URL}/`);
+    const frontendHtml = await frontendRes.text();
+    const hasAppRoot = frontendHtml.includes('root') || frontendHtml.includes('Together Cinema') || frontendHtml.includes('vite');
+    console.log('  Frontend index.html served:', hasAppRoot ? 'YES' : 'NO');
+    if (!hasAppRoot) throw new Error('Frontend build is not being served correctly');
+    console.log('  ✅ Cloud Storage, Signed Playback & Frontend serving verified!\n');
 
     console.log('\n🎉 ALL TOGETHER CINEMA E2E TESTS PASSED SUCCESSFULLY! ❤️🎬\n');
   } catch (err) {

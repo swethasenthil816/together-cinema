@@ -2,23 +2,33 @@ services:
   - type: web
     name: together-cinema
     runtime: node
-    region: singapore  # Closest to Malaysia/Asia
+    region: singapore  # Fast low-latency region
     plan: free
     rootDir: .
     buildCommand: npm run build:all
     startCommand: npm start
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
       - key: JWT_SECRET
-        generateValue: true
+        generateValue: true # Render generates a secure 256-bit random secret automatically
       - key: MONGODB_URI
-        sync: false   # You will paste this from MongoDB Atlas
+        sync: false         # Paste your MongoDB Atlas connection string here
       - key: CLIENT_URL
-        sync: false   # You will paste your Render app URL after first deploy
-    disk:
-      name: movie-uploads
-      mountPath: /opt/render/project/src/server/uploads
-      sizeGB: 1       # 1GB free persistent disk for uploaded movies
+        sync: false         # Optional: Paste your Render app URL after first deploy (e.g. https://together-cinema.onrender.com)
+      # Cloud Video Storage (Cloudflare R2 recommended: 10GB free & $0 egress fees)
+      - key: STORAGE_PROVIDER
+        value: r2
+      - key: R2_ACCOUNT_ID
+        sync: false         # From Cloudflare dashboard -> R2 -> Account ID
+      - key: R2_ACCESS_KEY_ID
+        sync: false         # From Cloudflare dashboard -> R2 -> Manage R2 API Tokens
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false         # From Cloudflare dashboard -> R2 -> Manage R2 API Tokens
+      - key: R2_BUCKET_NAME
+        sync: false         # Your R2 bucket name (e.g. together-cinema-movies)
+      - key: R2_PUBLIC_URL
+        sync: false         # Optional: Public R2 bucket development URL (e.g. https://pub-xxxx.r2.dev) or custom domain

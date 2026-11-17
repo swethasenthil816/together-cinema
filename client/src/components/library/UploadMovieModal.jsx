@@ -57,21 +57,64 @@ export const UploadMovieModal = ({ isOpen, onClose, onMovieUploaded }) => {
     setUploadProgress(0);
     setError(null);
 
-    const formData = new FormData();
-    formData.append('movie', movieFile);
-    if (thumbFile) formData.append('thumbnail', thumbFile);
-    formData.append('title', title);
-    formData.append('description', description);
-    formData.append('duration', duration || 'Custom Movie');
+    const sizeInMB = (movieFile.size / (1024 * 1024)).toFixed(1);
+    const sizeStr = movieFile.size > 1024 * 1024 * 1024
+      ? `${(movieFile.size / (1024 * 1024 * 1024)).toFixed(2)} GB`
+      : `${sizeInMB} MB`;
 
     try {
-      const res = await movieApi.uploadMovie(formData, (progress) => {
-        setUploadProgress(progress);
-      });
+      // 1. Check if cloud storage (R2/S3) is configured for direct upload
+      let cloudInfo = null;
+      try {
+        cloudInfo = await movieApi.getUploadUrl({
+          filename: movieFile.name,
+          contentType: movieFile.type || 'video/mp4',
+        });
+      } catch (checkErr) {
+        // Fall back to server upload
+        cloudInfo = { isCloud: false };
+      }
+
+      let createdMovie = null;
+
+      if (cloudInfo && cloudInfo.isCloud && cloudInfo.uploadUrl) {
+        // Direct-to-cloud upload (bypasses Render 100s proxy timeout & allows large files up to 5GB)
+        await movieApi.uploadDirectToCloud(
+          cloudInfo.uploadUrl,
+          movieFile,
+          movieFile.type || 'video/mp4',
+          (progress) => setUploadProgress(progress)
+        );
+
+        // Confirm upload and save metadata to database
+        const confirmRes = await movieApi.confirmUpload({
+          title,
+          description,
+          duration: duration || 'Custom Feature',
+          key: cloudInfo.key,
+          streamUrl: cloudInfo.streamUrl,
+          filename: movieFile.name,
+          size: sizeStr,
+        });
+        createdMovie = confirmRes.movie;
+      } else {
+        // Fallback: standard server multipart upload
+        const formData = new FormData();
+        formData.append('movie', movieFile);
+        if (thumbFile) formData.append('thumbnail', thumbFile);
+        formData.append('title', title);
+        formData.append('description', description);
+        formData.append('duration', duration || 'Custom Movie');
+
+        const res = await movieApi.uploadMovie(formData, (progress) => {
+          setUploadProgress(progress);
+        });
+        createdMovie = res.movie;
+      }
 
       setSuccess(true);
       setTimeout(() => {
-        if (onMovieUploaded) onMovieUploaded(res.movie);
+        if (onMovieUploaded && createdMovie) onMovieUploaded(createdMovie);
         onClose();
         // Reset form
         setTitle('');

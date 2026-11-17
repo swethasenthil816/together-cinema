@@ -33,7 +33,7 @@ export const apiRequest = async (endpoint, options = {}) => {
       headers,
     });
   } catch (networkErr) {
-    throw new Error('Cannot connect to server. Make sure the app is running on http://localhost:5173');
+    throw new Error('Cannot connect to server. Make sure the backend service is running.');
   }
 
   const data = await response.json().catch(() => ({}));
@@ -89,11 +89,69 @@ export const roomApi = {
 export const movieApi = {
   getAll: (search = '') => apiRequest(`/movies${search ? `?search=${encodeURIComponent(search)}` : ''}`),
   getById: (id) => apiRequest(`/movies/${id}`),
+  getSignedPlaybackUrl: (id) => apiRequest(`/movies/${id}/signed-url`),
   deleteMovie: (id) => apiRequest(`/movies/${id}`, {
     method: 'DELETE',
   }),
+
+  // Cloud presigned upload helpers (Cloudflare R2 / AWS S3)
+  getUploadUrl: (payload) => apiRequest('/movies/upload-url', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+
+  confirmUpload: (payload) => apiRequest('/movies/confirm-upload', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+
+  // Multipart upload helpers
+  initiateMultipart: (payload) => apiRequest('/movies/multipart/initiate', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  getPartUploadUrl: (payload) => apiRequest('/movies/multipart/part-url', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  completeMultipart: (payload) => apiRequest('/movies/multipart/complete', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  abortMultipart: (payload) => apiRequest('/movies/multipart/abort', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+
+  // Direct client-to-cloud upload via presigned PUT URL
+  uploadDirectToCloud: async (uploadUrl, file, contentType, onProgress) => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', uploadUrl);
+      xhr.setRequestHeader('Content-Type', contentType || file.type || 'video/mp4');
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          onProgress(percent);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(true);
+        } else {
+          reject(new Error(`Cloud upload failed with status ${xhr.status}`));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error during cloud storage upload'));
+      xhr.send(file);
+    });
+  },
+
+  // Fallback server multipart upload
   uploadMovie: async (formData, onProgress) => {
-    // Custom XHR for precise upload progress tracking
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `${API_BASE}/movies/upload`);
