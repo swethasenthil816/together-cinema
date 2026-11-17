@@ -1,6 +1,7 @@
 import { io } from './client/node_modules/socket.io-client/build/esm/index.js';
 
-const BASE_URL = process.env.TEST_BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
+const port = String(process.env.PORT || 5000).trim();
+const BASE_URL = (process.env.TEST_BASE_URL || `http://127.0.0.1:${port}`).trim();
 
 async function runTests() {
   console.log('🚀 Starting Together Cinema End-to-End Verification Suite...\n');
